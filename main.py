@@ -2,9 +2,9 @@ import random
 import math
 
 
-# --------------------------------------------------
-# STAGE 2: GENERATE PROBLEM ENVIRONMENT
-# --------------------------------------------------
+
+#  GENERATE PROBLEM ENVIRONMENT
+
 
 # Initializing variables for my Roll Number, Grid Size
 # and Obstacle Percentage
@@ -75,9 +75,9 @@ print(obstacles)
 
 
 
-# --------------------------------------------------
-# STAGE 3: PSO INITIALIZATION
-# --------------------------------------------------
+
+# PSO INITIALIZATION
+
 
 # Initializing number of particles, waypoints and iterations
 NUM_PARTICLES = 10
@@ -92,11 +92,12 @@ w = 0.6
 c1 = 1.5
 c2 = 1.5
 
+COLLISION_PENALTY = 1000
 
 
-# --------------------------------------------------
+
 # CREATE PARTICLES AND VELOCITIES
-# --------------------------------------------------
+
 
 particles = []
 velocities = []
@@ -128,9 +129,9 @@ for _ in range(NUM_PARTICLES):
 
 
 
-# --------------------------------------------------
+
 # DISPLAY INITIAL PARTICLES
-# --------------------------------------------------
+
 
 print("\nPSO INITIALIZATION")
 
@@ -156,47 +157,145 @@ for i in range(NUM_PARTICLES):
     print("Goal:", goal)
 
 
+# GET GRID CELLS BETWEEN TWO POINTS
+def get_segment_cells(point1, point2):
 
-# --------------------------------------------------
-# CALCULATE PATH COST
-# --------------------------------------------------
+    # Convert PSO decimal coordinates to grid coordinates
+    x1 = round(point1[0])
+    y1 = round(point1[1])
 
-# Calculate total distance of a particle's route
-def calculate_path_cost(particle):
+    x2 = round(point2[0])
+    y2 = round(point2[1])
+
+    cells = []
+
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+
+    step_x = 1 if x1 < x2 else -1
+    step_y = 1 if y1 < y2 else -1
+
+    error = dx - dy
+
+    while True:
+
+        cells.append((x1, y1))
+
+        if x1 == x2 and y1 == y2:
+            break
+
+        error2 = 2 * error
+
+        if error2 > -dy:
+            error -= dy
+            x1 += step_x
+
+        if error2 < dx:
+            error += dx
+            y1 += step_y
+
+    return cells
+
+# COUNT OBSTACLE COLLISIONS IN A PATH
+
+
+def count_collisions(particle):
 
     # Complete path:
     # Start -> Waypoints -> Goal
     path = [start] + particle + [goal]
 
+    collision_count = 0
+
+    # Check every path segment
+    for i in range(len(path) - 1):
+
+        point1 = path[i]
+        point2 = path[i + 1]
+
+        # Get all grid cells crossed by this segment
+        segment_cells = get_segment_cells(point1, point2)
+
+        # Check each crossed cell
+        for cell in segment_cells:
+
+            if cell in obstacles:
+                collision_count += 1
+
+    return collision_count
+
+
+
+# BUILD COMPLETE GRID PATH
+
+
+def build_grid_path(particle):
+
+    # Complete path containing start, waypoints and goal
+    path = [start] + particle + [goal]
+
+    grid_path = []
+
+    # Process every segment
+    for i in range(len(path) - 1):
+
+        point1 = path[i]
+        point2 = path[i + 1]
+
+        # Get all grid cells crossed by this segment
+        segment_cells = get_segment_cells(point1, point2)
+
+        # Avoid repeating the connecting cell
+        if i > 0:
+            segment_cells = segment_cells[1:]
+
+        # Add segment cells to complete grid path
+        grid_path.extend(segment_cells)
+
+    return grid_path
+
+# CALCULATE PATH COST
+
+
+# Calculate total distance of a particle's route
+
+
+def calculate_path_cost(particle):
+
+    # Complete path
+    path = [start] + particle + [goal]
+
     total_distance = 0
 
-
-    # Calculate distance between consecutive points
+    # Calculate total path distance
     for i in range(len(path) - 1):
 
         x1, y1 = path[i]
         x2, y2 = path[i + 1]
 
-
-        # Euclidean Distance Formula
         distance = math.sqrt(
-            (x2 - x1) ** 2
-            +
+            (x2 - x1) ** 2 +
             (y2 - y1) ** 2
         )
 
-
-        # Add distance to total path distance
         total_distance += distance
 
+    # Count obstacle collisions
+    collisions = count_collisions(particle)
 
-    return total_distance
+    # Add a large penalty for every collision
+    total_cost = (
+        total_distance
+        + collisions * COLLISION_PENALTY
+    )
+
+    return total_cost
 
 
 
-# --------------------------------------------------
+
+
 # INITIALIZE PERSONAL BEST (PBEST)
-# --------------------------------------------------
 
 pbest_positions = []
 
@@ -228,9 +327,9 @@ for particle in pbest_positions:
 
 
 
-# --------------------------------------------------
+
 # INITIALIZE GLOBAL BEST (GBEST)
-# --------------------------------------------------
+
 
 # Find particle having minimum Personal Best cost
 gbest_index = pbest_costs.index(
@@ -254,9 +353,9 @@ gbest_cost = pbest_costs[gbest_index]
 
 
 
-# --------------------------------------------------
+
 # DISPLAY INITIAL PBEST AND GBEST
-# --------------------------------------------------
+
 
 print("\nINITIAL PBEST COSTS")
 
@@ -286,9 +385,9 @@ print(
 
 
 
-# --------------------------------------------------
+
 # PSO OPTIMIZATION ALGORITHM
-# --------------------------------------------------
+
 
 for iteration in range(ITERATIONS):
 
@@ -501,3 +600,20 @@ best_path.append(goal)
 print("\nBest Path:")
 
 print(best_path)
+
+print("\nCollision Test:")
+print(
+    "Number of obstacle collisions:",
+    count_collisions(gbest_position)
+)
+
+# --------------------------------------------------
+# DISPLAY ACTUAL GRID PATH
+# --------------------------------------------------
+
+actual_grid_path = build_grid_path(gbest_position)
+
+print("\nActual Grid Path:")
+print(actual_grid_path)
+
+print("Total Grid Cells in Path:", len(actual_grid_path))
