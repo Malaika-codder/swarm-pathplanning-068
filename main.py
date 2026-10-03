@@ -1,5 +1,6 @@
 import random
 import math
+import matplotlib.pyplot as plt
 
 
 
@@ -293,6 +294,92 @@ def calculate_path_cost(particle):
 
 
 
+# VISUALIZE FINAL PATH
+def visualize_path(grid_path):
+
+    plt.figure(figsize=(8, 8))
+
+    # Draw grid
+    for i in range(GRID_SIZE + 1):
+        plt.axhline(i - 0.5, linewidth=0.5)
+        plt.axvline(i - 0.5, linewidth=0.5)
+
+    first_obstacle = True
+
+    for row, col in obstacles:
+        if first_obstacle:
+            plt.scatter(
+            col,
+            row,
+            marker="s",
+            s=150,
+            color="red",
+            label="Obstacle"
+        )
+            first_obstacle = False
+
+        else:
+            plt.scatter(
+            col,
+            row,
+            marker="s",
+            s=150,
+            color="red",
+            label="_nolegend_"
+        )
+
+    # Extract path coordinates
+    path_rows = [cell[0] for cell in grid_path]
+    path_cols = [cell[1] for cell in grid_path]
+
+    # Draw final path
+    plt.plot(
+        path_cols,
+        path_rows,
+        marker="o",
+        linewidth=2,
+        label="PSO Path"
+    )
+
+    # Draw start
+    plt.scatter(
+        start[1],
+        start[0],
+        s=200,
+        marker="o",
+        label="Start"
+    )
+
+    # Draw goal
+    plt.scatter(
+        goal[1],
+        goal[0],
+        s=200,
+        marker="*",
+        label="Goal"
+    )
+
+    plt.xlim(-0.5, GRID_SIZE - 0.5)
+    plt.ylim(GRID_SIZE - 0.5, -0.5)
+
+    plt.xticks(range(GRID_SIZE))
+    plt.yticks(range(GRID_SIZE))
+
+    plt.xlabel("Column")
+    plt.ylabel("Row")
+
+    plt.title(
+        "PSO-Based Obstacle-Free Path Planning\n"
+        f"Seed: {ROLL_NUMBER}"
+    )
+
+    plt.legend()
+    plt.tight_layout()
+
+    # Save visualization for GitHub README
+    plt.savefig("pso_path_result.png", dpi=300)
+
+    plt.show()
 
 
 # INITIALIZE PERSONAL BEST (PBEST)
@@ -617,3 +704,6 @@ print("\nActual Grid Path:")
 print(actual_grid_path)
 
 print("Total Grid Cells in Path:", len(actual_grid_path))
+
+# Visualize final obstacle-free path
+visualize_path(actual_grid_path)
